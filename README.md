@@ -1,6 +1,3 @@
-# Purple-air-project
-Working with Professor Julianne Fry from Reed College on a project relating to the purple air sensor network, looking at the 2020 September wildfires
-
 ---
 title: "Spatial mapping oregon AQ"
 output: html_document
@@ -28,7 +25,7 @@ UK <- map_data("world") %>% filter(region=="UK")
 data <- world.cities %>% filter(country.etc=="UK")
 
 ggplot() +
-  geom_polygon(data = oregon, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+  geom_polygon(data = UK, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
   geom_point( data=data, aes(x=long, y=lat)) +
   theme_void() + ylim(50,59) + coord_map() 
 
@@ -71,7 +68,7 @@ data %>%
 
 ```{r} 
 #Interactive version of the same map 
-install.packages("plotly")
+
 # Load the plotly package
 library(plotly)
  
@@ -106,7 +103,83 @@ p
 
 ```
 
+```{r}
+USA <- map_data("world") %>% filter(region=="USA")
 
+# Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
+USA_data <- world.cities %>% filter(country.etc=="USA")
+
+ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+  geom_point( data=data, aes(x=long, y=lat)) +
+  theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map() 
+```
+```{r}
+# virids package for the color palette
+library(viridis)
+ 
+# Left: use size and color
+ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+  geom_point( data=data, aes(x=long, y=lat, size=pop, color=pop)) +
+  scale_size_continuous(range=c(1,12)) +
+  scale_color_viridis(trans="log") +
+  theme_void()+ ylim(22,52) + xlim(-130,-60)+ coord_map() 
+ 
+# Center: reorder your dataset first! Big cities appear later = on top
+data %>%
+ arrange(pop) %>% 
+ mutate( name=factor(name, unique(name))) %>% 
+ ggplot() +
+    geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+    geom_point( aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
+    scale_size_continuous(range=c(1,12)) +
+    scale_color_viridis(trans="log") +
+    theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map()
+ 
+# Right: just use arrange(desc(pop)) instead
+data %>%
+ arrange(desc(pop)) %>% 
+ mutate( name=factor(name, unique(name))) %>% 
+ ggplot() +
+    geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+    geom_point( aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
+    scale_size_continuous(range=c(1,12)) +
+    scale_color_viridis(trans="log") +
+    theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map()
+```
+
+```{r} 
+#Interactive version of the same map 
+
+# Load the plotly package
+library(plotly)
+ 
+# Rorder data + Add a new column with tooltip text
+data <- data %>%
+  arrange(pop) %>%
+  mutate( name=factor(name, unique(name))) %>%
+  mutate( mytext=paste(
+    "City: ", name, "\n", 
+    "Population: ", pop, sep="")
+  )
+ 
+# Make the map (static)
+p <- data %>%
+  ggplot() +
+    geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
+    geom_point(aes(x=long, y=lat, size=pop, color=pop, text=mytext, alpha=pop) ) +
+    scale_size_continuous(range=c(1,15)) +
+    scale_color_viridis(option="inferno", trans="log" ) +
+    scale_alpha_continuous(trans="log") +
+    theme_void() +
+    ylim(22,52) + xlim(-130,-60) +
+    coord_map() +
+    theme(legend.position = "upper left")
+ 
+p <- ggplotly(p, tooltip="text")
+p
+```
 
 ```{r}
 library(raster)
