@@ -20,6 +20,7 @@ library(dplyr)
 library(maps)
 
 UK <- map_data("world") %>% filter(region=="UK")
+?map_data()
 
 # Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
 data <- world.cities %>% filter(country.etc=="UK")
@@ -111,7 +112,7 @@ USA_data <- world.cities %>% filter(country.etc=="USA")
 
 ggplot() +
   geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
-  geom_point( data=data, aes(x=long, y=lat)) +
+  geom_point( data=USA_data, aes(x=long, y=lat)) +
   theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map() 
 ```
 ```{r}
@@ -121,7 +122,7 @@ library(viridis)
 # Left: use size and color
 ggplot() +
   geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
-  geom_point( data=data, aes(x=long, y=lat, size=pop, color=pop)) +
+  geom_point( data=USA_data, aes(x=long, y=lat, size=pop, color=pop)) +
   scale_size_continuous(range=c(1,12)) +
   scale_color_viridis(trans="log") +
   theme_void()+ ylim(22,52) + xlim(-130,-60)+ coord_map() 
@@ -132,7 +133,7 @@ data %>%
  mutate( name=factor(name, unique(name))) %>% 
  ggplot() +
     geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
-    geom_point( aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
+    geom_point(data=USA_data,  aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
     scale_size_continuous(range=c(1,12)) +
     scale_color_viridis(trans="log") +
     theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map()
@@ -143,7 +144,7 @@ data %>%
  mutate( name=factor(name, unique(name))) %>% 
  ggplot() +
     geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
-    geom_point( aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
+    geom_point(data=USA_data,  aes(x=long, y=lat, size=pop, color=pop), alpha=0.9) +
     scale_size_continuous(range=c(1,12)) +
     scale_color_viridis(trans="log") +
     theme_void() + ylim(22,52) + xlim(-130,-60) + coord_map()
@@ -156,7 +157,7 @@ data %>%
 library(plotly)
  
 # Rorder data + Add a new column with tooltip text
-data <- data %>%
+USA_data <- USA_data %>%
   arrange(pop) %>%
   mutate( name=factor(name, unique(name))) %>%
   mutate( mytext=paste(
@@ -165,27 +166,27 @@ data <- data %>%
   )
  
 # Make the map (static)
-p <- data %>%
+ U <- USA_data %>%
   ggplot() +
     geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey", alpha=0.3) +
-    geom_point(aes(x=long, y=lat, size=pop, color=pop, text=mytext, alpha=pop) ) +
+    geom_point( aes(x=long, y=lat, size=pop, color=pop, text=mytext, alpha=pop) ) +
     scale_size_continuous(range=c(1,15)) +
     scale_color_viridis(option="inferno", trans="log" ) +
     scale_alpha_continuous(trans="log") +
     theme_void() +
-    ylim(22,52) + xlim(-130,-60) +
+   ylim(22,52) + xlim(-130,-60) +
     coord_map() +
-    theme(legend.position = "upper left")
+    theme(legend.position = "none")
  
-p <- ggplotly(p, tooltip="text")
-p
+U <-  ggplotly(U, tooltip="text")
+U
 ```
 
 ```{r}
 library(raster)
-or_shp <- shapefile("/Users/kiwharton/Desktop/PA/oregon_highway/oregon_highway.shp")
+or_shp <- shapefile("/Users/kiwharton/Desktop/PA/oregon_highway")
 
-or_shp <- readORG(dsn = "/kiwharton/Desktop/PA/oregon_highway/oregon_highway.shp", layer = "oregon_highway")
+or_shp <- readORG(dsn = "//Users/kiwharton/Desktop/PA/oregon_highway", layer = "oregon_highway")
 
 
 ```
