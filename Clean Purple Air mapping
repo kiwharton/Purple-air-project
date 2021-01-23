@@ -21,6 +21,7 @@ library(osmdata) # package for working with streets
 ```{r}
 data_raw <- read_csv("wrangled_day.csv")
 
+
 usa <- map_data("usa")
 states <- map_data("state")
 counties <- map_data("county")
@@ -30,30 +31,13 @@ oregon <- states %>%
 
 oregon_counties <- counties %>% 
   filter(region == "oregon")
+big_streets <- getbb("Oregon")%>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = "motorway") %>%
+  osmdata_sf()
+
 ```
-
-## plotting data
-
-```{r}
-total_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
-  geom_polygon(fill = "grey", color = "white") +
-  geom_polygon(data = oregon, color = "black", fill = NA) +
-  geom_point(
-    data = data_raw,
-    aes(x = long, y = lat, size = `PM2.5_ATM_ug/m3`, color = `PM2.5_ATM_ug/m3`),
-    inherit.aes = FALSE
-    # the most important thing here is the inherit.aes = FALSE because it prevents 
-    # geom_point from trying to use the aesthetics described in the ggplot() call
-    ) +
-geom_sf(data = big_streets$osm_lines,
-          inherit.aes = FALSE,
-          color = "black") +
-  coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
-  scale_color_viridis_c(trans = "log")+ ggtitle("Daily Average September 1st-November 31st")+ theme(axis.text.x = element_text(size = 6))
-
-total_daily
-```
-
 #setting dates
 ```{r}
 # pre
@@ -66,15 +50,42 @@ date_fire_end <- as.Date("2020-09-19")
 date_post_start <- as.Date("2020-09-20")
 date_post_end <- as.Date("2020-09-29")
 
-PA_day<-PA_day%>%
+PA_avgs<-data_raw%>%
   mutate(range = case_when(date >= date_pre_start & date <= date_pre_end ~ "pre",
                    date >= date_fire_start & date <= date_fire_end ~ "fire",
                    date >= date_post_start & date <= date_post_end ~ "post")) %>%
-  drop_na(range)
+  drop_na(range)%>%
+  filter(inout=="outside")%>%
+  filter(!loc_tag %in% c("South Tabor", "South Woodstock", "Bull Mountain Home")) %>% #where one, two, and three are the problematic locations
+group_by(loc_tag, long, lat, range) %>%
+summarize(mean = mean(`PM2.5_CF1_ug/m3`, na.rm=TRUE)) #where pm25 is whichever pm25 you're using
 ```
+## plotting data
+
+```{r}
+total_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "grey", color = "white") +
+  geom_polygon(data = oregon, color = "black", fill = NA) +
+  geom_point(
+    data = PA_avgs,
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
+    inherit.aes = FALSE
+    # the most important thing here is the inherit.aes = FALSE because it prevents 
+    # geom_point from trying to use the aesthetics described in the ggplot() call
+    ) +
+geom_sf(data = big_streets$osm_lines,
+          inherit.aes = FALSE,
+          color = "black") +
+  coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
+  scale_color_viridis_c(trans = "log")+ ggtitle("Daily PM2.5 Average", subtitle = " September 1st-November 31st")+ theme(axis.text.x = element_text(size = 6))
+
+total_daily
+```
+
+
 #map for pre fire
 ```{r}
-pre_fire<- PA_day%>%
+pre_fire<- PA_avgs%>%
   filter(range=="pre")
 
 pre_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
@@ -82,7 +93,7 @@ pre_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)
   geom_polygon(data = oregon, color = "black", fill = NA) +
   geom_point(
     data = pre_fire,
-    aes(x = long, y = lat, size = `PM2.5_CF1_ug.m3`, color = `PM2.5_ATM_ug.m3`),
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
@@ -91,21 +102,22 @@ geom_sf(data = big_streets$osm_lines,
           inherit.aes = FALSE,
           color = "black") +
   coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
-  scale_color_viridis_c(trans = "log")+ ggtitle("Daily Average pre fire", subtitle =  "(9/1-9/9 2020)")
+  scale_color_viridis_c(trans = "log")+ ggtitle("Daily Average PM2.5 Pre Fire", subtitle =  "(9/1-9/9 2020)")
 
 pre_daily
 ```
 #map for during fire
 ```{r}
-during_fire<- PA_day%>%
-  filter(range=="fire")
+during_fire<- PA_avgs%>%
+  filter(range=="fire")%>%
+  filter(!loc_tag %in% c("South Tabor"))
 
 fire_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
   geom_polygon(fill = "grey", color = "white") +
   geom_polygon(data = oregon, color = "black", fill = NA) +
   geom_point(
     data = during_fire,
-    aes(x = long, y = lat, size = `PM2.5_CF1_ug.m3`, color = `PM2.5_ATM_ug.m3`),
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
@@ -114,22 +126,23 @@ geom_sf(data = big_streets$osm_lines,
           inherit.aes = FALSE,
           color = "black") +
   coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
-  scale_color_viridis_c(trans = "log")+ ggtitle("Daily fire Average", subtitle="(9/10-9/18 2020)")
+  scale_color_viridis_c(trans = "log")+ ggtitle("Daily PM2.5 Average During Fire", subtitle="(9/10-9/18 2020)")
 
 fire_daily
 
 ```
 #map for post fire
 ```{r}
-post_fire<- PA_day%>%
-  filter(range=="post")
+post_fire<- PA_avgs%>%
+  filter(range=="post")%>%
+  filter(!loc_tag %in% c("South Tabor"))
 
 post_daily<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
   geom_polygon(fill = "grey", color = "white") +
   geom_polygon(data = oregon, color = "black", fill = NA) +
   geom_point(
     data = post_fire,
-    aes(x = long, y = lat, size = `PM2.5_CF1_ug.m3`, color = `PM2.5_ATM_ug.m3`),
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
