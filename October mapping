@@ -1,0 +1,123 @@
+---
+title: "October mapping"
+author: "Kieran Wharton"
+date: "2/14/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(leaflet)
+library(ggplot2)
+library(dplyr)
+library(ggmap)
+library(maps)
+library(mapdata)
+library(remotes)
+remotes::install_github("ropensci/osmdata")
+library(sf)
+library(osmdata) # package for working with streets
+```
+
+#load data
+```{r}
+data_oct <- read_csv("october_averages.csv")
+
+
+usa <- map_data("usa")
+states <- map_data("state")
+counties <- map_data("county")
+
+oregon <- states %>% 
+  filter(region == "oregon")
+
+oregon_counties <- counties %>% 
+  filter(region == "oregon")
+big_streets <- getbb("Oregon")%>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = "motorway") %>%
+  osmdata_sf()
+
+```
+##setting the times Data sets
+```{r}
+oct_avg<- data_oct%>%
+  filter(inout=="outside")%>%
+  filter(!loc_tag %in% c("South Tabor", "South Woodstock", "Bull Mountain Home")) %>% #removing the problematic locations
+group_by(loc_tag, long, lat,time_group) %>%
+summarize(mean = mean(`PM2.5_CF1_ug/m3`, na.rm=TRUE)) #where pm25 is whichever pm25 you're using
+
+oct_morn<- oct_avg%>%
+  filter(time_group=="morning")
+
+oct_aft<- oct_avg%>%
+  filter(time_group=="afternoon")
+
+oct_night<- oct_avg%>%
+  filter(time_group=="night")
+```
+
+## Morning map
+```{r}
+morn_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "grey", color = "white") +
+  geom_polygon(data = oregon, color = "black", fill = NA) +
+  geom_point(
+    data = oct_morn,
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
+    inherit.aes = FALSE
+    # the most important thing here is the inherit.aes = FALSE because it prevents 
+    # geom_point from trying to use the aesthetics described in the ggplot() call
+    ) +
+geom_sf(data = big_streets$osm_lines,
+          inherit.aes = FALSE,
+          color = "black") +
+  coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
+  scale_color_viridis_c(trans = "log")+ ggtitle("October Morning PM2.5 Average", subtitle = "1st-15th, 6:00AM-9:00AM")+ theme(axis.text.x = element_text(size = 6))
+
+morn_map
+```
+
+
+#map for Afternoon
+```{r}
+afternoon_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "grey", color = "white") +
+  geom_polygon(data = oregon, color = "black", fill = NA) +
+  geom_point(
+    data = oct_aft,
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
+    inherit.aes = FALSE
+    # the most important thing here is the inherit.aes = FALSE because it prevents 
+    # geom_point from trying to use the aesthetics described in the ggplot() call
+    ) +
+geom_sf(data = big_streets$osm_lines,
+          inherit.aes = FALSE,
+          color = "black") +
+  coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
+  scale_color_viridis_c(trans = "log")+ ggtitle("October Afternoon PM2.5 Average", subtitle = "1st-15th, 12:00- 15:00")+ theme(axis.text.x = element_text(size = 6))
+
+afternoon_map
+```
+#map for night
+```{r}
+night_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "grey", color = "white") +
+  geom_polygon(data = oregon, color = "black", fill = NA) +
+  geom_point(
+    data = oct_night,
+    aes(x = long, y = lat, size = `mean`, color = `mean`),
+    inherit.aes = FALSE
+    # the most important thing here is the inherit.aes = FALSE because it prevents 
+    # geom_point from trying to use the aesthetics described in the ggplot() call
+    ) +
+geom_sf(data = big_streets$osm_lines,
+          inherit.aes = FALSE,
+          color = "black") +
+  coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
+  scale_color_viridis_c(trans = "log")+ ggtitle("Nightly PM2.5 in October", subtitle="1st-15th, 21:00-00:00")
+
+night_map
+
+```
