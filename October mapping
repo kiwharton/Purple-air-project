@@ -69,7 +69,7 @@ morn_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group))
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
-    ) +
+    ) + scale_size(name="Average", limits = c(0, 300))+
 geom_sf(data = big_streets$osm_lines,
           inherit.aes = FALSE,
           color = "black") +
@@ -91,10 +91,10 @@ afternoon_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = gr
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
-    ) +
+    ) +scale_colour_gradientn(colours = terrain.colors(10))+
 geom_sf(data = big_streets$osm_lines,
           inherit.aes = FALSE,
-          color = "black") +
+          color = "black") +scale_size(name="Average", limits = c(0, 300))+
   coord_sf(xlim = c(-122.9, -122.5), ylim = c(45.35, 45.7)) +
   scale_color_viridis_c(trans = "log")+ ggtitle("October Afternoon PM2.5 Average", subtitle = "1st-15th, 12:00- 15:00")+ theme(axis.text.x = element_text(size = 6))
 
@@ -111,7 +111,7 @@ night_map<- ggplot(data = oregon_counties, aes(x = long, y = lat, group = group)
     inherit.aes = FALSE
     # the most important thing here is the inherit.aes = FALSE because it prevents 
     # geom_point from trying to use the aesthetics described in the ggplot() call
-    ) +
+    ) +scale_size(name="Average", limits = c(0, 300))+
 geom_sf(data = big_streets$osm_lines,
           inherit.aes = FALSE,
           color = "black") +
